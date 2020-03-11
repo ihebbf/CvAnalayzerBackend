@@ -209,7 +209,7 @@ def loopAllCv():
     resume_list = []
     CvNumber = len([name for name in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, name))]) - 1
     for i in range(CvNumber):
-
+        print("ok")
         filename = os.path.join(filepath, 'cv'+str(i + 1)+'.pdf')
         print(filename)
         for page in extract_text_from_pdf(filename):
