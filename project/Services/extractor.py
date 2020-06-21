@@ -3,9 +3,11 @@ import re
 import pandas as pd
 import spacy
 import datetime
+import string
 
 from project.utils.CVs import *
-from project.utils import currentPath
+
+from project.utils.Keywords import keywordpath
 from collections import Counter
 from pdfminer.converter import TextConverter
 from pdfminer.pdfinterp import PDFPageInterpreter
@@ -14,11 +16,13 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from spacy.matcher import Matcher
 
-nlp = spacy.load('fr_core_news_md')
+from project.utils.CvTmp import upload
+
+nlp = spacy.load('en_core_web_sm')
 matcher = Matcher(nlp.vocab)
 
 
-# function that extract all text from cv
+# function that extract all text from CvTmp
 def extract_text_from_pdf(pdf_path):
     with open(pdf_path, 'rb') as fh:
         # iterate over all pages of PDF document
@@ -57,7 +61,7 @@ def CountCommonChar(s1, s2):
     return sum(common_letters.values())
 
 
-# function that extract mobile number from cv
+# function that extract mobile number from CvTmp
 def extract_mobile_number(text):
     pattern = re.compile(
         r'(\+\d{3}\s\d{8})|(\+\d{3}\s\d{2}.\d{3}.\d{3})|(\+\d{3}\s\d{2}\s\d{3}\s\d{3})|(\d{2}\s\d{3}\s\d{3})|(\d{2}.\d{3}.\d{3})|(\d{2}-\d{3}-\d{3})|(\(\+\d{3}\)\s\d{8})')
@@ -67,7 +71,7 @@ def extract_mobile_number(text):
         return number
 
 
-# function that extract email from cv
+# function that extract email from CvTmp
 def extract_email(email):
     email = re.findall("([^@|\s]+@[^@]+\.[^@|\s]+)", email)
     if email:
@@ -77,7 +81,7 @@ def extract_email(email):
             return None
 
 
-# function that extract name from cv
+# function that extract name from CvTmp
 def extract_name(resume_text):
     PersonsMatches = []
     ListSub = []
@@ -90,7 +94,7 @@ def extract_name(resume_text):
     matcher.add('NAME', None, pattern)
     matches = matcher(nlp_text)
     if extract_email(resume_text) is None:
-        return None
+        return ""
     else:
         for match in matches:
             PersonsMatches.append(nlp_text[match[1]:match[2]])
@@ -104,14 +108,14 @@ def extract_name(resume_text):
                 ListSub.append(CountCommonChar(Person.text, extract_email(resume_text)))
         print(Persons)
         if len(ListSub) == 0:
-            return None
+            return ""
         else:
             maxMatch = max(ListSub)
             max_index = ListSub.index(maxMatch)
             return Persons[max_index]
 
 
-# function that extract skills from cv
+# function that extract skills from CvTmp
 def extract_skills(resume_text):
     nlp_text = nlp(resume_text)
     noun_chunks = nlp_text.noun_chunks
@@ -119,7 +123,7 @@ def extract_skills(resume_text):
     tokens = [token.text for token in nlp_text if not token.is_stop]
 
     # reading the csv file
-    data = pd.read_csv(os.path.join(currentPath,'skills.csv'))
+    data = pd.read_csv(os.path.join(keywordpath,'skills.csv'))
 
     # extract values
     skills = list(data.columns.values)
@@ -139,14 +143,14 @@ def extract_skills(resume_text):
     return [i.capitalize().lower() for i in set([i.lower() for i in skillset])]
 
 
-# function that extract languages from cv
+# function that extract languages from CvTmp
 def extract_langues(resume_text):
     nlp_text = nlp(resume_text)
     noun_chunks = nlp_text.noun_chunks
     # removing stop words and implementing word tokenization
     tokens = [token.text for token in nlp_text if not token.is_stop]
     # reading the csv file
-    data = pd.read_csv(os.path.join(currentPath,'langue.csv')).apply(lambda x: x.astype(str).str.lower())
+    data = pd.read_csv(os.path.join(keywordpath,'langue.csv')).apply(lambda x: x.astype(str).str.lower())
     # extract values
     skills = list(data.columns.str.lower().values)
     skillset = []
@@ -164,7 +168,8 @@ def extract_langues(resume_text):
     return [i.capitalize().lower() for i in set([i.lower() for i in skillset])]
 
 
-# function that extract age from cv
+
+# function that extract age from CvTmp
 def extract_age(text):
     match = re.findall(r'\d{4}', text)
     age = []
@@ -181,18 +186,16 @@ def extract_age(text):
         return max(age)
 
 
-# function that extract years of experience from cv
+# function that extract years of experience from CvTmp
 def extract_Year_of_experience(text):
     match = re.findall(r'\d{4}', text)
     experience = []
-    print(experience)
     for m in match:
         date = datetime.datetime.strptime(m, '%Y').strftime("%Y")
         now = datetime.datetime.now()
         if extract_age(text) is not None:
 
             if ((int(now.year) - extract_age(text)) + 1) < int(date) < int(now.year):
-                print(int(date), extract_age(text))
                 experience.append(int(date))
         else:
             if 2000 < int(date) < int(now.year):
@@ -208,9 +211,10 @@ def loopAllCv():
     text = ''
     resume_list = []
     CvNumber = len([name for name in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, name))]) - 1
+    print(CvNumber)
     for i in range(CvNumber):
-        
-        filename = os.path.join(filepath, 'cv'+str(i + 1)+'.pdf')
+
+        filename = os.path.join(filepath, 'CvTmp'+str(i + 1)+'.pdf')
         print(filename)
         for page in extract_text_from_pdf(filename):
             text += ' ' + page
@@ -219,15 +223,97 @@ def loopAllCv():
         text = ''
     return resume_list
 
-# function that return the frequency of each word in text
-# def WordFrequency():
-#     text = ''
-#     for page in extract_text_from_pdf("CVs/c102.pdf"):
-#         text += ' ' + page
-#     stop = stopwords.words('english')
-#     tokenized_word = word_tokenize(text)
-#     liste = [i for i in tokenized_word if i not in stop]
-#     words = [list.lower() for list in liste if list.isalpha()]
-#     fdist = FreqDist(words)
-#     fdist.plot(50, cumulative=False)
-#     plt.show()
+
+
+
+# function that extract languages from CvTmp et tranforme la variable langue avec l'encodage binaire
+def convert_langues_to_binary(resume_text):
+    nlp_text = nlp(resume_text)
+    noun_chunks = nlp_text.noun_chunks
+    # removing stop words and implementing word tokenization
+    tokens = [token.text for token in nlp_text if not token.is_stop]
+    # reading the csv file
+    data = pd.read_csv(os.path.join(keywordpath,'langue.csv')).apply(lambda x: x.astype(str).str.lower())
+    # extract values
+    skills = list(data.columns.str.lower().values)
+    skillset = []
+    # check for one-grams (example: python)
+    for token in tokens:
+        if token.lower() in skills:
+            skillset.append(token.lower())
+
+
+    # check for bi-grams and tri-grams (example: machine learning)
+    for token in noun_chunks:
+        token = token.text.lower().strip()
+        if token in skills:
+            skillset.append(token.lower())
+    count=""
+    for s in skills:
+        if s in skillset:
+            count+="1"
+        else:
+            count+="0"
+    return int(count)
+
+
+
+# function that extract languages from CvTmp et tranforme la variable langue avec l'encodage binaire
+def convert_web_skills_to_binary(resume_text):
+    nlp_text = nlp(resume_text)
+    noun_chunks = nlp_text.noun_chunks
+    # removing stop words and implementing word tokenization
+    tokens = [token.text for token in nlp_text if not token.is_stop]
+    # reading the csv file
+    data = pd.read_csv(os.path.join(keywordpath,'web.csv')).apply(lambda x: x.astype(str).str.lower())
+    # extract values
+    skills = list(data.columns.str.lower().values)
+
+    skillset = []
+    # check for one-grams (example: python)
+    for token in tokens:
+        if token.lower() in skills:
+            skillset.append(token.lower())
+
+
+    # check for bi-grams and tri-grams (example: machine learning)
+    for token in noun_chunks:
+        token = token.text.lower().strip()
+        if token in skills:
+            skillset.append(token.lower())
+    count=""
+    skillset = list(dict.fromkeys(skillset))
+    print(skillset)
+    for s in skills:
+        if skillset.count(s) > 0 :
+            count+="1"
+        else:
+            count+="0"
+    return count
+
+def WordsFrequecy():
+    text = "iheb Services zeinbe lé python nlp python -conception conception Services "
+    doc = nlp(text)
+    #remove stopwords and punctuations
+    words = [token.text for token in doc if token.is_stop != True and token.is_punct != True]
+    for i in range(len(words)):
+        words[i]=words[i].strip(string.punctuation)
+
+    word_freq = Counter(words)
+    common_words = word_freq.most_common()
+
+
+
+
+def loopOneOrAllCV(files):
+    text = ''
+    resume_list = []
+    for f in files :
+        filename = os.path.join(upload,f.filename)
+        print(filename)
+        for page in extract_text_from_pdf(filename):
+            text += ' ' + page
+        text = " ".join(text.split())
+        resume_list.append(text)
+        text = ''
+    return resume_list
