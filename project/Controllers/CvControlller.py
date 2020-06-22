@@ -6,13 +6,17 @@ from project import app
 import shutil
 from typing import List
 
+from project.Services import PredictorService
 from project.Services.CvService import CvService
+from project.Services.PredictorService import *
+
 from project.Services.extractor import *
 from fastapi import  UploadFile, File
 
 from project.utils.CvArchive import *
 from project.models.Cv import CvSchema
 cvService=CvService()
+predicService=PredictorService()
 
 @app.post("/cv/uploadfiles/")
 async def create_upload_files(files: List[UploadFile] = File(...)):
@@ -41,6 +45,7 @@ async def create_upload_files(files: List[UploadFile] = File(...)):
         cv.skills=extract_skills(val)
         cv.langues=extract_langues(val)
         cv.etat="En cours"
+        cv.domaine=predicService.predict(extract_skills(val))
         lista.append(cv)
         res=cvService.create(jsonable_encoder(cv))
         cv=CvSchema()
@@ -66,3 +71,7 @@ async def update(cv:CvSchema,id):
 
 
     return  cvService.edit_cv(id,jsonable_encoder(cv))
+
+
+
+

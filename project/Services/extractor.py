@@ -94,7 +94,7 @@ def extract_name(resume_text):
     matcher.add('NAME', None, pattern)
     matches = matcher(nlp_text)
     if extract_email(resume_text) is None:
-        return ""
+        return "Non trouvé"
     else:
         for match in matches:
             PersonsMatches.append(nlp_text[match[1]:match[2]])
@@ -108,7 +108,7 @@ def extract_name(resume_text):
                 ListSub.append(CountCommonChar(Person.text, extract_email(resume_text)))
         print(Persons)
         if len(ListSub) == 0:
-            return ""
+            return "Non trouvé"
         else:
             maxMatch = max(ListSub)
             max_index = ListSub.index(maxMatch)
