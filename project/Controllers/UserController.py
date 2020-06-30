@@ -23,12 +23,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 from fastapi import Response, Depends
 
 userService=UserService()
-# A route to return all phone numbers
 @app.get("/user/getAll", status_code=201)
 async def read_all_users():
     return userService.list()
 
-
+@app.get("/user/getAllManager", status_code=201)
+async def get_all_managers():
+    return userService.getAllManager()
 
 @app.post("/user/add", status_code=201)
 async def register(user:UserSchema):
@@ -77,6 +78,9 @@ async def update(user:UserSchema,req:Request,id):
 
 
 
+@app.get("/user/get/{id}", status_code=201)
+async def get(id):
+    return userService.get(id)
 
 
 

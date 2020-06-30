@@ -48,3 +48,48 @@ class PredictorService:
             return "Developpement"
         elif knn_from_joblib.predict(result)[0]==2:
             return "Data science"
+
+
+    def  getDomaineOffre(self,skills):
+        dataScience= pd.read_csv(os.path.join(keywordpath, "datascience.csv")).apply(lambda x: x.astype(str).str.lower())
+        # extract values
+        dataScienceKeyword = list(dataScience.columns.str.lower().values)
+        web = pd.read_csv(os.path.join(keywordpath, "web.csv")).apply(lambda x: x.astype(str).str.lower())
+        webKeyword = list(web.columns.str.lower().values)
+        countdatascience=0
+        countweb=0
+        countreseau=0
+        reseau = pd.read_csv(os.path.join(keywordpath, "reseau.csv")).apply(lambda x: x.astype(str).str.lower())
+        # extract values
+        reseauKeyword = list(reseau.columns.str.lower().values)
+
+        all=[]
+        for skill in skills:
+
+            if skill in dataScienceKeyword :
+                countdatascience+=1
+
+            if skill in webKeyword:
+                countweb += 1
+
+            if skill in reseauKeyword:
+                countreseau += 1
+
+
+        all.append(countdatascience)
+        all.append(countreseau)
+        all.append(countweb)
+        m = max(all)
+        maxIndexes=[i for i, j in enumerate(all) if j == m]
+        if len(maxIndexes)==1:
+            if all.index(max(all)) == 0:
+                return  "Data science"
+            elif all.index(max(all)) == 1:
+                return "Reseau"
+            elif all.index(max(all)) == 2:
+                return  "Developpement"
+
+
+
+
+

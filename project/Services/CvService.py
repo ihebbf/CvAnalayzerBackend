@@ -52,4 +52,19 @@ class CvService:
             res = es.delete(index="cvsweb", doc_type='_doc', id=id)
             return res
 
+    def matchCVs(self, domaine):
+        cv_data = es.search(index="cvsweb", body={
+            'query': {"bool": {"must": [{"match": {"_type": "_doc"}}, {"term": {"domaine.keyword": domaine}},
+                                       ]}}})
 
+        cvs = []
+        if cv_data['hits']["total"]['value'] > 0:
+
+            for data in cv_data['hits']['hits']:
+                json = data["_source"]
+                json["id"] = data['_id']
+                cvs.append(json)
+
+            return cvs
+        else:
+            return False

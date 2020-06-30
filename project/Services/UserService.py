@@ -120,3 +120,22 @@ class UserService:
             raise credentials_exception
         return user
 
+    def getAllManager(self):
+        user_data = es.search(index="users",
+                              body={"query": {
+                                  "term": {
+                                      "role.keyword": "manager"
+                                  }}})
+        users = []
+
+        if user_data['hits']["total"]['value'] > 0:
+
+            for data in user_data['hits']['hits']:
+                json = data["_source"]
+                json["id"] = data['_id']
+                users.append(json)
+
+            return users
+        else:
+            return False
+
